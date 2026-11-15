@@ -109,7 +109,7 @@ document.getElementById("url").textContent = BANNER.link.replace(/^https?:\/\//,
 /* static fireworks + stars behind the text (seeded so the banner looks the same every time) */
 (function drawSky() {
   let seed = 22; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-  const bursts = [[70, 70, 46, "#6fb1ff"], [330, 395, 40, "#b8a4ff"], [545, 70, 52, "#dcedff"], [610, 400, 34, "#6fb1ff"], [930, 60, 38, "#8fd3ff"], [955, 420, 30, "#b8a4ff"]];
+  const bursts = [[70, 70, 46, "#6fb1ff"], [455, 415, 34, "#b8a4ff"], [545, 70, 52, "#dcedff"], [610, 400, 34, "#6fb1ff"], [930, 60, 38, "#8fd3ff"], [955, 420, 30, "#b8a4ff"]];
   let out = "";
   for (let i = 0; i < 110; i++) out += `<circle cx="${(rnd() * 1000).toFixed(1)}" cy="${(rnd() * 469).toFixed(1)}" r="${(rnd() * .9 + .25).toFixed(2)}" fill="#fff" opacity="${(rnd() * .5 + .15).toFixed(2)}"/>`;
   bursts.forEach(([x, y, R, col]) => {
