@@ -241,7 +241,8 @@
   .maplink::after { content: ""; position: absolute; inset: 0; z-index: 1; }   /* whole card is clickable */
   .card:hover .maplink { border-color: var(--gold); color: #fff; }
   .rsvp { margin-top: 70px; text-align: center; }
-  .rsvp p { font-family: var(--serif); font-style: italic; font-size: 1.3rem; color: var(--muted); margin-bottom: 26px; }
+  .rsvp p { font-family: var(--serif); font-style: italic; font-size: 1.3rem; color: var(--muted); }
+  .rsvp .note:empty { display: none; }
   .rsvp .note { margin-top: 22px; font: 300 .74rem var(--sans); font-style: normal; letter-spacing: .28em; text-transform: uppercase; color: var(--muted); }
   footer { position: relative; z-index: 2; text-align: center; padding: 0 20px 44px; font-size: .64rem; letter-spacing: .4em; text-transform: uppercase; color: rgba(159, 176, 201, .6); }
 
@@ -316,7 +317,6 @@
       <p class="when"><em data-f="dateShort" style="font-style:normal"></em><span>✦</span><em data-f="time" style="font-style:normal"></em></p>
       <div class="cta-row">
         <a class="btn" href="#details">View details</a>
-        <button class="btn ghost" id="wishBtn" type="button">Make a wish</button>
       </div>
     </div>
     <div class="hint"><i>✦</i>Drag to spin · tap the cake to blow the candles</div>
@@ -361,7 +361,6 @@
 
       <div class="rsvp reveal">
         <p>Your presence is the greatest gift.</p>
-        <button class="btn" id="rsvpBtn" type="button">I'll be there</button>
         <div class="note" data-f="rsvpNote"></div>
       </div>
     </div>
@@ -976,7 +975,7 @@ document.querySelectorAll('a[href^="#"]').forEach(a => a.addEventListener("click
   if (window.lenis) window.lenis.scrollTo(target, { duration: 1.6 });
   else window.scrollTo({ top: target.getBoundingClientRect().top + window.pageYOffset, behavior: reduceMotion ? "auto" : "smooth" });
 }));
-$("#wishBtn").addEventListener("click", () => {
+$("#wishBtn")?.addEventListener("click", () => {
   // bring the cake back into view first, so the candles and the message can be seen (the button sits below the cake on phones)
   const away = window.pageYOffset > 30;
   if (away) window.lenis ? window.lenis.scrollTo(0, { duration: .9 }) : window.scrollTo({ top: 0, behavior: "smooth" });
@@ -984,7 +983,7 @@ $("#wishBtn").addEventListener("click", () => {
 });
 
 // RSVP
-$("#rsvpBtn").addEventListener("click", function () {
+$("#rsvpBtn")?.addEventListener("click", function () {
   FW.finale(16);
   this.textContent = "See you there ✦";
   if (CONFIG.rsvpLink) setTimeout(() => { window.open(CONFIG.rsvpLink, "_blank", "noopener"); }, 900);
