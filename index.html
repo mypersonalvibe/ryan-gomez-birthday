@@ -25,7 +25,11 @@
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html { scroll-behavior: smooth; }
+  /* Lenis smooth scroll */
+  html.lenis, html.lenis body { height: auto; }
+  .lenis.lenis-smooth { scroll-behavior: auto !important; }
+  .lenis.lenis-stopped { overflow: hidden; }
+  [data-speed] { will-change: translate; }
   body {
     background: var(--bg);
     color: var(--ink);
@@ -115,7 +119,7 @@
 
   /* ---------- Hero ---------- */
   main { position: relative; z-index: 2; }
-  .hero { position: relative; min-height: 100vh; min-height: 100svh; display: flex; align-items: center; touch-action: pan-y; }
+  .hero { position: relative; min-height: 100vh; min-height: 100svh; display: flex; align-items: center; touch-action: pan-y; overflow: hidden; }
   #scene { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: pan-y; cursor: grab; }
   #scene:active { cursor: grabbing; }
   .hero-copy { position: relative; width: min(560px, 46vw); margin-left: clamp(24px, 8vw, 130px); pointer-events: none; }
@@ -254,6 +258,8 @@
     .wish { top: 5vh; }
     .cards { grid-template-columns: 1fr; }
     .count { gap: 8px; }
+    .count div { min-width: 0; padding-left: 2px; padding-right: 2px; }
+    .count span { font-size: .5rem; letter-spacing: .18em; padding-left: .18em; }
     section.details { padding-top: 60px; }
   }
   @media (prefers-reduced-motion: reduce) {
@@ -357,6 +363,7 @@
 <footer>With love ✦ <span data-f="name"></span></footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lenis@1.1.14/dist/lenis.min.js"></script>
 <script>
 /* =====================================================================
    EDIT YOUR PARTY DETAILS HERE
@@ -803,6 +810,8 @@ const CAKE = (() => {
     spin.position.y = (1 - e) * -6;                   // rises in during the intro
     spin.rotation.y += (1 - e) * .06;
     spin.getObjectByName("topper").rotation.y = t * 1.2;
+    const S = window.SCROLL || { y: 0, v: 0 };        // smoothed scroll (Lenis)
+    spin.rotation.y += S.v * .0009;                    // scrolling spins the cake
 
     // flames
     let glow = 0;
@@ -836,6 +845,8 @@ const CAKE = (() => {
         f.o.position.set((f.u * 2 - 1) * halfW * .92, f.y + Math.sin(t * f.sp + f.ph) * .3 - (1 - e) * 8, f.z);
         f.o.rotation.x = t * .25 + f.ph; f.o.rotation.y = t * .35 + f.ph;
       }
+      // depth parallax: nearer objects travel faster with the smoothed scroll
+      f.o.position.y += S.y * (f.par ??= .0012 + (f.z + 5) * .0011);
     });
 
     // dust
@@ -856,6 +867,56 @@ const CAKE = (() => {
   tick();
 
   return { hit, wish, start() { started = true; } };
+})();
+
+/* =====================================================================
+   SMOOTH SCROLL (Lenis, lerp 0.085) + PARALLAX
+   Every layer reads the same smoothed scroll value and moves at its own speed.
+   ===================================================================== */
+window.SCROLL = { y: 0, v: 0 };
+(function smoothScroll() {
+  if (window.Lenis && !reduceMotion) {
+    const lenis = window.lenis = new Lenis({ lerp: 0.085 });
+    lenis.stop();                                    // released when the loader finishes
+    lenis.on("scroll", e => { SCROLL.y = e.scroll; SCROLL.v = e.velocity; apply(); });
+    (function raf(t) { lenis.raf(t); requestAnimationFrame(raf); })(performance.now());
+  } else if (!reduceMotion) {                        // Lenis unavailable: same parallax on native scroll
+    addEventListener("scroll", () => { SCROLL.y = window.pageYOffset; apply(); }, { passive: true });
+  } else return;
+
+  // hero layers: translate = scroll * speed (positive lags behind the page, negative runs ahead)
+  const heroLayers = [
+    [$("#scene"), .34], [$(".hero-copy"), .16], [$("#wish"), .5], [$(".hint"), -.25], [$(".stars"), -.04]
+  ];
+  // content blocks: offset from the viewport centre * speed, so each drifts in at its own pace
+  const speeds = { ".heading": .10, ".count": .05, ".rsvp": .08 };
+  const blocks = [];
+  Object.entries(speeds).forEach(([sel, sp]) => blocks.push({ el: $(sel), sp }));
+  document.querySelectorAll(".card").forEach((el, i) => blocks.push({ el, sp: [.04, .13, .22][i % 3] }));
+  blocks.forEach(b => b.el.setAttribute("data-speed", b.sp));
+
+  let vh = innerHeight, k = 1;
+  function measure() {
+    vh = innerHeight; k = innerWidth <= 820 ? .45 : 1;       // gentler on phones
+    blocks.forEach(b => {
+      b.el.style.translate = "";
+      const r = b.el.getBoundingClientRect();
+      b.mid = r.top + window.pageYOffset + r.height / 2;
+    });
+    apply();
+  }
+  function apply() {
+    const y = SCROLL.y;
+    if (y < vh * 1.2) heroLayers.forEach(([el, sp]) => { el.style.translate = `0 ${(y * sp * k).toFixed(2)}px`; });
+    blocks.forEach(b => {
+      const d = Math.max(-140, Math.min(140, (b.mid - (y + vh / 2)) * b.sp * k));
+      b.el.style.translate = `0 ${d.toFixed(2)}px`;
+    });
+  }
+  addEventListener("resize", measure);
+  addEventListener("load", measure);
+  document.fonts && document.fonts.ready.then(measure);
+  measure();
 })();
 
 /* =====================================================================
@@ -881,6 +942,7 @@ const CAKE = (() => {
       el.classList.add("done");
       document.body.classList.remove("locked");
       document.body.classList.add("ready");
+      window.lenis && window.lenis.start();
       FW.start(); CAKE && CAKE.start();
       setTimeout(() => el.classList.add("gone"), 1500);
     }, 350);
@@ -901,7 +963,8 @@ document.querySelectorAll('a[href^="#"]').forEach(a => a.addEventListener("click
   const target = document.getElementById(a.getAttribute("href").slice(1));
   if (!target) return;
   e.preventDefault();
-  window.scrollTo({ top: target.getBoundingClientRect().top + window.pageYOffset, behavior: reduceMotion ? "auto" : "smooth" });
+  if (window.lenis) window.lenis.scrollTo(target, { duration: 1.6 });
+  else window.scrollTo({ top: target.getBoundingClientRect().top + window.pageYOffset, behavior: reduceMotion ? "auto" : "smooth" });
 }));
 $("#wishBtn").addEventListener("click", () => { CAKE ? CAKE.wish() : FW.finale(14); });
 
